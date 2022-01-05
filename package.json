@@ -1,0 +1,24 @@
+{
+  "name": "dswatcher_nodejs",
+  "version": "1.0.0",
+  "description": "build backend for DSWatcher project with Express, Squelize and MySQL",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "nodejs",
+    "express",
+    "sequelize",
+    "rest",
+    "api"
+  ],
+  "author": "HieuLD9",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.17.2",
+    "mysql2": "^2.3.3",
+    "sequelize": "^7.0.0-alpha.3"
+  }
+}
