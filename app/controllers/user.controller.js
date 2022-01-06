@@ -1,3 +1,4 @@
+const { Sequelize } = require("../models");
 const db = require("../models");
 
 const User = db.users;
@@ -38,31 +39,74 @@ exports.create = (req, res) => {
 exports.findAll = (req, res) => {
     let statusCondition = req.query.status;
     let username = req.query.username;
-    // let sortBy = req.query.id;
     let limit = 5;
-    // if(!sortBy.includes(['username', 'email'])) {
-    //     sortBy = 'id';
-    // }
+
 
     let sortDesc = req.query.sortDirection || 'desc'; // asc / desc
 
     var condition = username ? { username: { [Op.like]: `%${username}%` } } : null;
 
-
-    if(!statusCondition){
-        statusCondition = 0;
-    }
-    else {statusCondition = 1;}
-
     User.findAll({
         limit: limit,
         offset: 0,
-        where: { username: username, status: statusCondition, },
+        where: {},
         order: [
             ['permission', sortDesc]
         ]
     })
         .then(data => {
+            res.send(data);
+        })
+        .catch(err => {
+            res.status(500).send({
+                message:
+                    err.message || "Some error occurred while retrieving users."
+            });
+        });
+};
+
+exports.filter = (req, res) => {
+    let statusCondition = req.query.status;
+    let username = req.query.username;
+    let permissionCodition = req.query.permission;
+    let limit = 5;
+    let whereClause = [];
+
+    let sortDesc = req.query.sortDirection || 'desc'; // asc / desc
+
+    // var condition = username ? { username: { [Op.like]: `%${username}%` } } : null;
+
+    if (statusCondition === "false") {
+        statusCondition = 0;
+        whereClause.push({ status: statusCondition });
+    }
+    else if (statusCondition === "true") {
+        statusCondition = 1;
+        whereClause.push({ status: statusCondition });
+    }
+
+    let usrCondition = { [Op.like]: `%${username}%` }
+    console.log(usrCondition.value);
+    if (usrCondition.value != undefined) {
+        whereClause.push({ username: usrCondition });
+    }
+
+    if (permissionCodition != undefined) {
+        whereClause.push({ permission: permissionCodition });
+    }
+
+    console.log(whereClause);
+
+    User.findAll({
+        limit: limit,
+        offset: 0,
+        where: whereClause,
+        order: [
+            ['permission', sortDesc]
+        ]
+    })
+        .then(data => {
+            whereClause = [];
             res.send(data);
         })
         .catch(err => {
@@ -94,10 +138,13 @@ exports.findOne = (req, res) => {
         });
 };
 
-exports.findOneByUsername = (req, res) => {
+exports.findByUsername = (req, res) => {
     const username = req.params.username;
+    var condition = username ? { username: { [Op.like]: `%${username}%` } } : null;
 
-    User.findOneByUsername(username)
+    User.findByUsername({
+        where: condition
+    })
         .then(num => {
             if (num == 1) {
                 res.send(data);
@@ -116,12 +163,14 @@ exports.findOneByUsername = (req, res) => {
 
 // Update a User by the id in the request
 exports.update = (req, res) => {
-    const id = req.params.id;
+    let id = req.params.id;
 
-    User.update(req.body, {
-        where: { id: id }
-    })
+    User.update(req.body,
+        {
+            where: { id: id }
+        })
         .then(num => {
+            console.log(req.body);
             if (num == 1) {
                 res.send({
                     message: "User was updated successfully."
@@ -171,9 +220,9 @@ exports.deleteAll = (req, res) => {
 
 exports.findAllActiveStatus = (req, res) => {
     let filterStatus = req.params.status;
-    User.findAll({ 
+    User.findAll({
         where: { status: filterStatus },
-     })
+    })
         .then(data => {
             res.send(data);
         })

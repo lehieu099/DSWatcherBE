@@ -12,6 +12,9 @@ module.exports = app => {
     //Retrieve all active user
     router.get("/status", user.findAllActiveStatus);
 
+    // filter
+    router.get("/filter", user.filter);
+
     // Retrieve a single User with id
     router.get("/:id", user.findOne);
 
