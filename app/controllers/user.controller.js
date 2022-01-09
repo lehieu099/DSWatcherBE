@@ -5,6 +5,21 @@ const User = db.users;
 
 const Op = db.Sequelize.Op;
 
+const getPagination = (page, size) => {
+    const limit = size ? +size : 5;
+    const offset = page ? page * limit : 0;
+
+    return { limit, offset };
+}
+
+const getPagingData = (data, page, limit) => {
+    const { count: totalUsers, rows: users } = data;
+    const currentPage = page ? +page : 1;
+    const totalPages = Math.ceil(totalUsers / limit);
+
+    return { totalUsers, users, totalPages, currentPage };
+}
+
 // create and save a new User 
 exports.create = (req, res) => {
     //Validate request 
@@ -37,25 +52,47 @@ exports.create = (req, res) => {
 
 // Retrieve all Users from database
 exports.findAll = (req, res) => {
-    let statusCondition = req.query.status;
-    let username = req.query.username;
-    let limit = 5;
+    var { page, size, username, permission ,status } = req.query;
+    // var condition1 = username ? { username: { [Op.like]: `%${username}%` } } : null;
+    const { limit, offset } = getPagination(page, size);
+    let sortDesc = req.query.sortDirection || 'asc'; // asc / desc
 
+    ////////////////////////////////////
+    let usernameCondition = { [Op.like]: `%${username}%` }
 
-    let sortDesc = req.query.sortDirection || 'desc'; // asc / desc
+    console.log(req.query);
+    console.log(req.query.status);
+    let whereClause = [];
 
-    var condition = username ? { username: { [Op.like]: `%${username}%` } } : null;
+    if (username !== undefined) {
+        whereClause.push({ username: usernameCondition });
+    }
 
-    User.findAll({
-        limit: limit,
-        offset: 0,
-        where: {},
+    if (status === "false") {
+        status = 0;
+        whereClause.push({ status: status });
+    }
+    else if (status === "true") {
+        status = 1;
+        whereClause.push({ status: status });
+    }
+
+    if (permission !== undefined) {
+        whereClause.push({ permission: permission });
+    }
+    /////////////////////////////////////
+    User.findAndCountAll({
+        where: whereClause,
+        limit,
+        offset,
         order: [
-            ['permission', sortDesc]
+            ['id', sortDesc]
         ]
     })
         .then(data => {
-            res.send(data);
+            console.log(whereClause);
+            const response = getPagingData(data, page, limit);
+            res.send(response);
         })
         .catch(err => {
             res.status(500).send({
@@ -68,13 +105,11 @@ exports.findAll = (req, res) => {
 exports.filter = (req, res) => {
     let statusCondition = req.query.status;
     let username = req.query.username;
-    let permissionCodition = req.query.permission;
-    let limit = 5;
+    let permission = req.query.permission;
     let whereClause = [];
 
     let sortDesc = req.query.sortDirection || 'desc'; // asc / desc
 
-    // var condition = username ? { username: { [Op.like]: `%${username}%` } } : null;
 
     if (statusCondition === "false") {
         statusCondition = 0;
@@ -85,21 +120,20 @@ exports.filter = (req, res) => {
         whereClause.push({ status: statusCondition });
     }
 
-    let usrCondition = { [Op.like]: `%${username}%` }
-    console.log(usrCondition.value);
-    if (usrCondition.value != undefined) {
-        whereClause.push({ username: usrCondition });
+    let usernameCondition = { [Op.like]: `%${username}%` }
+    console.log(usernameCondition);
+    console.log(username);
+
+    if (username !== undefined) {
+        whereClause.push({ username: usernameCondition });
     }
 
-    if (permissionCodition != undefined) {
-        whereClause.push({ permission: permissionCodition });
+    if (permission !== undefined) {
+        whereClause.push({ permission: permission });
     }
-
     console.log(whereClause);
 
     User.findAll({
-        limit: limit,
-        offset: 0,
         where: whereClause,
         order: [
             ['permission', sortDesc]
@@ -142,7 +176,7 @@ exports.findByUsername = (req, res) => {
     const username = req.params.username;
     var condition = username ? { username: { [Op.like]: `%${username}%` } } : null;
 
-    User.findByUsername({
+    User.findAll({
         where: condition
     })
         .then(num => {
